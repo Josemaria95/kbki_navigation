@@ -35,6 +35,7 @@ class SlamInterface(object):
 		data = np.array(msg.data)
 		current_map = data.reshape(self.height, self.width)
 
+		# Tomar los indices de los obstaculos y almacenarlos
 		for i in range(current_map.shape[0]):
 			for j in range(current_map.shape[1]):
 				if current_map[i][j] == 100:
@@ -45,6 +46,7 @@ class SlamInterface(object):
 
 	def convertCoordinates(self):
 
+		# Convertir los pixeles en coordenadas 
 		x = (np.array(self.grid_x) * self.resolution) + self.pose_x
 		y = (np.array(self.grid_y) * self.resolution) + self.pose_y
 
