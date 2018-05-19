@@ -1,0 +1,409 @@
+#!/usr/bin/env python
+from __future__ import print_function
+import numpy as np
+import matplotlib.pyplot as plt
+from geometry_msgs.msg import Twist , Pose
+from nav_msgs.msg import Odometry
+from kbki_tesis.msg import Obst
+import rospy
+
+class LidarCoordinates(object):
+
+	def __init__(self):
+		self.x = None
+		self.y = None
+		rospy.Subscriber("/coordinates", Obst, self.readCoord)
+
+	def readCoord(self, data):
+		#print ("=========================")
+		self.x = data.x_obst
+		self.y = data.y_obst
+		#print("x: ",self.x, "y: ", self.y)
+
+	def get_xy(self):
+		#print ("===============")
+		#print("x: ", self.x)
+		tamano = len(self.x)
+		#print("x: ", self.x)
+		#obstacles = np.zeros((tamano,2))
+		obstacles = np.zeros((tamano,3))
+		for i in range(tamano):
+			obstacles[i,0] = self.x[i]
+			obstacles[i,1] = self.y[i]
+			obstacles[i,2] = 1
+
+		#print("obstacles1: ", obstacles)
+		return obstacles
+
+
+class OdomKobuki(object):
+
+	def __init__ (self):
+
+		self.orientation_x = 0.0
+		self.orientation_y = 0.0
+		self.orientation_z = 0.0
+		self.orientation_w = 1.0
+		self.position_x = 0.0
+		self.position_y = 0.0
+		self.current_position = None
+		rospy.Subscriber("/odom", Odometry,self.readOdom)
+
+	def readOdom(self,data):
+
+		# Position values
+		self.position_x = data.pose.pose.position.x
+		self.position_y = data.pose.pose.position.y
+		self.current_position = [self.position_x ,self.position_y]
+		# Orientation values
+		self.orientation_z = data.pose.pose.orientation.z
+		self.orientation_w = data.pose.pose.orientation.w
+		self.th_actual = 2 * np.arccos(self.orientation_w) * np.sign(self.orientation_z)
+
+
+	def getOdom(self):
+		self.x_actual  = self.position_x
+		self.y_actual  = self.position_y
+
+		current_pose = np.array([self.x_actual, self.y_actual, self.th_actual])
+		
+		return current_pose
+
+	def matrixRotation(self):
+
+		matrix_rotation = np.array([[np.cos(self.th_actual), -np.sin(self.th_actual), 0.], 
+									[np.sin(self.th_actual), np.cos(self.th_actual), 0.], 
+									[0. , 0., 1.]])
+		#matrix_rotation = matrix_rotation.transpose()
+
+		return matrix_rotation
+
+class PotentialField(object):
+
+	def __init__ (self, dgoal,zeta,rho,eta,Umax):
+
+		self.qgoal = None
+		self.dgoal = dgoal
+		self.zeta  = zeta
+		self.rho   = rho
+		self.eta   = eta
+		self.umax  = Umax
+		#self.qc    = qc
+		#self.obstacles = obstacles
+		#self.current_position = None
+
+	def set_qgoal(self, qgoal):
+		self.qgoal = qgoal
+
+	def get_qgoal(self):
+		return self.qgoal
+
+	def set_qcurrent(self, qcurrent):
+		self.qc = qcurrent
+
+	def get_qcurrent(self):
+		return self.qc
+
+	def set_obstacles(self, obstacles):
+		self.obstacles = obstacles
+		#print("lidar_obstacles: ", self.obstacles)
+
+	def get_obstacles(self):
+		return self.obstacles
+
+	def attractive_potential(self):
+	#def attractive_potential(self):
+		#self.qc = qcurrent
+		distancia = np.linalg.norm(self.qc - self.qgoal)
+		if (distancia <= self.dgoal):
+			U_attractive = 0.5 * self.zeta * distancia * distancia
+			F_attractive = -self.zeta * (self.qc - self.qgoal)
+
+		else:
+			U_attractive = self.dgoal * self.zeta * distancia - 0.5 * self.zeta * self.dgoal ** 2.0
+			F_attractive = -self.dgoal * self.zeta * (self.qc - self.qgoal) / distancia
+
+		return U_attractive, F_attractive
+
+	#def repulsive_potential(self, qcurrent, obstacles):
+	def repulsive_potential_(self, obstacle):
+		
+		#self.obstacles = obstacles
+		#print (self.obstacles.shape)
+		#self.qc = qcurrent
+		#obstacle = obstacle[0:2,:].T
+		#for i in range (len(obstacles)):
+		#print("new_actual: ", type(self.qc), "obstacle: ", obstacle,"tamano: ", obstacle.shape)
+		#distancia = np.linalg.norm(self.qc.reshape(2,1) - obstacle)
+		distancia = np.linalg.norm(self.qc - obstacle)
+		if (distancia <= self.rho):
+			if (distancia == 0.0):
+				U_repulsive = 100
+				F_repulsive = np.zeros(2,)
+			else:
+				U_repulsive = 0.5 * self.eta * (1.0/distancia - 1.0/self.rho) ** 2.0
+				F_repulsive = self.eta * (1.0/distancia - 1.0/self.rho) * (1.0/distancia ** 2.0) * (self.qc - obstacle)/distancia
+
+			if (U_repulsive > self.umax):
+				U_repulsive = self.umax
+
+		else:
+			U_repulsive = 0.0
+			F_repulsive = np.zeros(2,)
+
+		print("F_rep: ", F_repulsive, ", dist: ",distancia)
+		return U_repulsive, F_repulsive
+
+	#def repulsive_walls(self, obstacles):
+	def repulsive_walls(self):
+
+		#self.obstacles = obstacles
+		#print("obs: ", obstacles)
+		U_total = 0.0
+		F_total = np.zeros(2,)
+		#print ("data: ", self,obstacles, "tamano: ", np.size(self.obstacles))
+		#for i in range(len(self.obstacles)):
+		for i in range(self.obstacles.shape[1]):
+			#print(self.qc)
+			#print(self.obstacles.shape)
+			U_repulsive, F_repulsive = self.repulsive_potential_(self.obstacles[0:2,i])
+			fobstaculos.write(str(self.obstacles[0,i]) + " " + str(self.obstacles[1,i]) + "\n")
+			U_total += U_repulsive
+			F_total += F_repulsive
+
+		return U_total, F_total 
+
+	#def getFtotal(self,qcurrent, obstacles):
+	def getFtotal(self):
+		#self.qc = qcurrent
+		#self.obstacles = obstacles
+		# Calculation Forces
+		#U_attractive, F_attractive = self.attractive_potential(self.qc)
+		#U_repulsive, F_repulsive   = self.repulsive_walls(self.obstacles)
+		U_attractive, F_attractive = self.attractive_potential()
+		U_repulsive, F_repulsive   = self.repulsive_walls()
+
+		# Navigation Force
+		Ftotal = F_attractive + F_repulsive
+		print ("F_total: ", Ftotal)
+		#Ftotal = F_attractive
+
+		fattractive.write(str(F_attractive[0]) + " " + str(F_attractive[1]) + "\n")
+		frepulsive.write (str(F_repulsive[0]) + " " + str(F_repulsive[1]) + "\n")
+
+		#print("F_attr: ",F_attractive, "F_rep: ",F_repulsive)
+		# Magnitud and direction 
+		direction_Ftotal = np.arctan2(Ftotal[1],Ftotal[0])
+		magnitud_Ftotal  = np.sqrt(Ftotal[0] ** 2 + Ftotal[1] ** 2)
+
+		#print("magnitud: ",magnitud_Ftotal, "direction: ",direction_Ftotal)
+		vector = [magnitud_Ftotal, direction_Ftotal]
+
+		print("magnitud: ",magnitud_Ftotal, "direction: ",direction_Ftotal)
+		#return direction_Ftotal, magnitud_Ftotal
+		return vector
+
+
+class PolarControl(object):
+
+	def __init__(self, parametros):
+
+		self.krho   = parametros[0]
+		self.kbeta  = parametros[1]
+		self.kalpha = parametros[2]
+		
+	def normalizeAngle(self, angle):
+
+		self.angle = angle
+		angle_norm = np.mod(self.angle + np.pi, 2 * np.pi) - np.pi
+
+		return angle_norm
+
+	def getControlPolar (self, X_actual, X_deseado ):
+
+		# Posicion y orientacion actuales
+		self.x  = X_actual[0]
+		self.y  = X_actual[1]
+		self.th = X_actual[2]
+
+		# Posicion y orientacion del goal
+		self.xdes  = X_deseado[0]
+		self.ydes  = X_deseado[1]
+		self.thdes = X_deseado[2]
+
+		#Parametros
+
+		rho   = np.sqrt((self.xdes - self.x) ** 2 + (self.ydes - self.y) ** 2)
+		lamda = np.arctan2(self.ydes - self.y, self.xdes - self.x)
+		alpha = lamda - self.th
+		alpha = self.normalizeAngle(alpha)
+
+		if (np.abs(alpha) <= (np.pi/2)):
+			
+			beta  = self.thdes - lamda
+			krho2 = self.krho
+
+		else:
+
+			alpha = lamda - self.th - np.pi
+			alpha = self.normalizeAngle(alpha)
+
+			beta  = self.thdes - lamda - np.pi
+			beta  = self.normalizeAngle(beta)
+
+			krho2 = -self.krho
+
+		vu 	  = krho2 * rho
+		omega = self.kalpha * alpha + self.kbeta * beta
+
+		velocities = [vu, omega]
+
+		return velocities
+
+# logs
+fposicion_actual = open("/home/jm95/dev/kobuki_ws/src/kbki_tesis/logs/current_5.txt",'w')
+fattractive = open("/home/jm95/dev/kobuki_ws/src/kbki_tesis/logs/fattr_5.txt",'w')
+frepulsive = open("/home/jm95/dev/kobuki_ws/src/kbki_tesis/logs/frep_5.txt",'w')
+fobstaculos = open("/home/jm95/dev/kobuki_ws/src/kbki_tesis/logs/obst_5.txt","w")
+
+# Node Create
+rospy.init_node ("RobotNavigation", anonymous=True)
+
+# Potential Field Parameters
+# Atractive Potential
+zeta  = 0.5 	# Ganancia del gradiente atractivo
+dgoal = 1  	# Distancia a la que el robot empieza a disminuir las velocidad
+
+# Repulsive Potential
+rho  = 0.6 # Q*
+eta  = 0.5 # Ganancia del gradiente repulsivo
+Umax = 1.0
+
+# Polar Control Parameters
+krho   =  0.6
+kbeta  = -0.6
+dalpha = 0.05 
+kalpha = (2.0/np.pi) * krho - (5.0/3.0) * kbeta + dalpha
+parametros = [krho, kbeta, kalpha]
+
+# Class init
+lidar   = LidarCoordinates()
+kbki    = OdomKobuki()
+apf     = PotentialField(dgoal,zeta,rho,eta,Umax)
+control = PolarControl(parametros)
+
+# Publisher
+#pub = rospy.Publisher('/mobile_base/commands/velocity', Twist, queue_size=10)
+pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+
+# Rate Frequency
+freq = 5     # Frecuencia (Hz)
+T    = 1.0/freq # Periodo
+rate = rospy.Rate(freq)
+r    = rospy.Rate(1)
+
+# Tiempo inicial
+tinit = rospy.get_time()
+
+r.sleep()
+
+while not rospy.is_shutdown():
+
+	# Goal position
+	apf.set_qgoal(np.array([4.0,4.0]))
+	thgoal = 90
+	# Current Position of robot movil
+	posicion_actual = kbki.getOdom()
+	# Position of obstacles
+	obstacles = lidar.get_xy()
+	#print("tamano: ", obstacles.shape, "obstacles: ", obstacles)
+	#print("obstacles: ", obstacles)
+	#r.sleep()
+	# Navigation Force through Potential Field
+	#fuerza_navegacion = apf.getFtotal(np.array([posicion_actual[0],posicion_actual[1]]),np.array([obstacles[:,0],obstacles[:,1]]))
+	apf.set_qcurrent(posicion_actual[0:2])
+	#print ("nuevo: ", apf.set_qcurrent)
+	#apf.get_qcurrent()
+	#print ("current: ", apf.get_qcurrent())
+	# Matrix Rotation
+	#matrix_rotation = np.array([np.cos(posicion_actual(2)), -np.sin(posicion_actual(2)), 0],[np.sin(posicion_actual(2)), np.cos(posicion_actual(2)), 0],[0,0,1])
+	matrixR = kbki.matrixRotation()
+	obstacles = obstacles.transpose()
+	#print("obstacles: ", obstacles)
+	lidar_obstacles = np.dot(matrixR, obstacles)
+	lidar_obstacles += np.array([posicion_actual[0],posicion_actual[1],1]).reshape(3,1)
+
+	# Logs obstacles
+	#fobstaculos.write(str(lidar_obstacles[0]) + " " + str(lidar_obstacles[1]) + "\n")
+	#print("lidar_obst: \n", lidar_obstacles)
+	apf.set_obstacles(lidar_obstacles)
+	#print("lidar_obstacles: ", apf.set_obstacles)
+	# Navigation Force
+	fuerza_navegacion = apf.getFtotal()
+	#fuerza_navegacion = apf.getFtotal(posicion_actual[0:2], obstacles)
+
+	#print("magnitud: ", fuerza_navegacion[1], "direccion: ", fuerza_navegacion[0])
+
+	# Desired temporary position
+	factor_fuerza = 1
+	if (fuerza_navegacion[0]>5.0):
+		factor_fuerza = 0.01
+	xdes  = posicion_actual[0] + (factor_fuerza*fuerza_navegacion[0] * np.cos(fuerza_navegacion[1]))
+	ydes  = posicion_actual[1] + (factor_fuerza*fuerza_navegacion[0] * np.sin(fuerza_navegacion[1]))
+	thdes = fuerza_navegacion[1] 
+
+	posicion_deseada = np.array([xdes,ydes,thdes])
+	#print ("desired: ", posicion_deseada)
+
+	# Polar Control
+	velocidades = control.getControlPolar(posicion_actual, posicion_deseada)
+
+	# Logs
+	t = rospy.get_time()-tinit
+	fposicion_actual.write(str(t) + " " + str(posicion_actual[0]) + " " + str(posicion_actual[1]) + " " + str(posicion_actual[2]) + "\n")
+	
+
+	#print ("posicion_actual: ", posicion_actual, "goal: ", apf.get_qgoal(), "velocidades: ",velocidades)
+	#print ("velocidades: ",velocidades)
+	if (np.linalg.norm(posicion_actual[0:2] - apf.get_qgoal()) < 0.01):
+		kp = 0.05
+		velo_angular = kp * (posicion_actual[2] - np.deg2rad(thgoal))
+		velo_lineal  = 0.0
+		print("================================================")
+
+	# Type message
+	gts = Twist()
+
+	# Linear velocities
+	gts.linear.x = velocidades[0]
+	#gts.linear.x = 0.0
+	gts.linear.y = 0.0
+	gts.linear.z = 0.0
+
+	#Angular velocities
+	gts.angular.x = 0.0
+	gts.angular.y = 0.0
+	gts.angular.z = velocidades[1]
+	#gts.angular.z = 0.5
+
+	# Error
+	error = posicion_actual - np.hstack((apf.get_qgoal() , thgoal))
+	#print ("error: ", np.hstack((apf.get_qgoal() , thgoal)))
+	W     = np.array([[1., 0., 0.],[0., 1., 0.],[0., 0., 10.0]])
+	errornorm = error.T.dot(W).dot(error)
+
+	#print ("errornorm: ", errornorm)
+	if (errornorm < 0.05):
+		print ("--------------------- Finish -----------------")
+		break;
+
+
+	pub.publish(gts)
+	rate.sleep()
+
+fposicion_actual.close()
+fposicion_deseada.close()
+fvelocidad.close()
+fobstaculos.close()
+
+rospy.spin()

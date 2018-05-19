@@ -1,0 +1,68 @@
+#!/usr/bin/env python
+from __future__ import print_function
+import numpy as np
+import matplotlib.pyplot as plt
+from geometry_msgs.msg import Twist , Pose
+from nav_msgs.msg import Odometry
+from sensor_msgs.msg import LaserScan
+from kbki_tesis.msg import Obst
+import rospy
+import time
+
+
+class LidarInterface(object):
+
+	def __init__(self):
+
+		self.pub = rospy.Publisher("/coordinates",Obst,queue_size=10, latch=True)
+		self.obst_msg = Obst()
+		# Suscripcion del topico "/scan"
+		rospy.Subscriber("/scan", LaserScan, self.readLidarScan)
+		self.x_obst = 360*[0.,]
+		self.y_obst = 360*[0.,]
+		self.tamano = None
+		self.step = None
+
+	def readLidarScan(self, data):
+
+		#self.x_obst = 360*[0.,]
+		#self.y_obst = 360*[0.,]
+		Nranges = len(data.ranges)
+		# print (len(data.ranges))
+		x_obst = Nranges*[0.,]
+		y_obst = Nranges*[0.,]
+
+		counter = 0
+		self.tamano = len(x_obst)
+		self.step = 10
+		for theta, r in enumerate(data.ranges):
+			if r != float('inf'):
+				x_obst[counter] = r * np.cos(np.deg2rad(theta))
+				y_obst[counter] = r * np.sin(np.deg2rad(theta))
+				counter += 1
+		#print(counter)
+		self.x_obst = x_obst[0:counter]
+		self.y_obst = y_obst[0:counter]
+		#if (len(self.x_obst) > 50):
+		#	print(self.x_obst)
+
+
+	def publish_xy(self):
+		self.obst_msg.x_obst = self.x_obst[0:self.tamano:self.step]
+		self.obst_msg.y_obst = self.y_obst[0:self.tamano:self.step]
+		print("lidar: ", self.obst_msg)
+		self.pub.publish(self.obst_msg)
+
+if __name__ == '__main__':
+
+	# Creacion del nodo test_lidar
+	rospy.init_node('test_lidar')
+
+	lidar = LidarInterface()
+
+	rate = rospy.Rate(1)
+	while not rospy.is_shutdown():
+		lidar.publish_xy()
+		rate.sleep()
+
+
