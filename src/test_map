@@ -5,7 +5,9 @@ import matplotlib.pyplot as plt
 from geometry_msgs.msg import Twist , Pose
 from nav_msgs.msg import Odometry, OccupancyGrid, MapMetaData 
 from kbki_tesis.msg import Obst
+import copy
 import rospy
+import time
 
 class SlamInterface(object):
 
@@ -13,13 +15,13 @@ class SlamInterface(object):
 
 		#self.pub = rospy.Publisher("/map_index",,queue_size=10, latch=True)
 		rospy.Subscriber("/map",OccupancyGrid, self.readMap)
-		self.grid_x = 360 * [0.,]
-		self.grid_y = 360 * [0.,]
-		self.width = 0.0
-		self.height = 0.0
-		self.resolution = 0.0
-		self.pose_x = 0.0
-		self.pose_y = 0.0
+		self.grid_x = None #360 * [0.,]
+		self.grid_y = None #360 * [0.,]
+		self.width = None
+		self.height = None
+		self.resolution = None
+		self.pose_x = None
+		self.pose_y = None
 
 	def readMap(self,msg):
 
@@ -28,19 +30,28 @@ class SlamInterface(object):
 		self.width = msg.info.width
 		self.height = msg.info.height
 		self.resolution = msg.info.resolution
-		self.grid_x = self.width * [0.,]
-		self.grid_y = self.height * [0.,]
+		#self.grid_x = self.width * [0.,]
+		#self.grid_y = self.height * [0.,]
 		self.pose_x = msg.info.origin.position.x
 		self.pose_y = msg.info.origin.position.y 
+
 		data = np.array(msg.data)
 		current_map = data.reshape(self.height, self.width)
+		vector_i = []
+		vector_j = []
 
 		# Tomar los indices de los obstaculos y almacenarlos
 		for i in range(current_map.shape[0]):
 			for j in range(current_map.shape[1]):
 				if current_map[i][j] == 100:
-					self.grid_x.append(i)
-					self.grid_y.append(j)
+					vector_i.append(i)
+					vector_j.append(j)
+
+		self.grid_x = copy.copy(vector_i)
+		self.grid_y = copy.copy(vector_j)
+		vector_i = []
+		vector_j = []
+
 
 		#return (grid_x, grid_y)
 
@@ -50,12 +61,15 @@ class SlamInterface(object):
 		x = (np.array(self.grid_x) * self.resolution) + self.pose_x
 		y = (np.array(self.grid_y) * self.resolution) + self.pose_y
 
-		print ("x: ", x)
+		#print ("x: ", x)
 		tamano = len(x)
 		obstacles = np.zeros((tamano,2))
 		for n in range(tamano):
 			obstacles[n,0] = x[n]
 			obstacles[n,1] = y[n]
+
+		plt.plot(obstacles[:,0],obstacles[:,1],'.')
+		plt.show()
 
 		#print ("obst: ", obstacles)
 
@@ -67,6 +81,8 @@ T    = 1.0/freq # Periodo
 rate = rospy.Rate(freq)
 
 while not rospy.is_shutdown():
+
+	time.sleep(1)
 
 	obstaculos = Slam.convertCoordinates()
 	print("obst: ", obstaculos)
