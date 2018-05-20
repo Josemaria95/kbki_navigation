@@ -334,7 +334,7 @@ r.sleep()
 while not rospy.is_shutdown():
 
 	# Goal position
-	apf.set_qgoal(np.array([4.0,0.0]))
+	apf.set_qgoal(np.array([4.0,3.0]))
 	thgoal = 90
 	# Current Position of robot movil
 	posicion_actual = kbki.getOdom()
