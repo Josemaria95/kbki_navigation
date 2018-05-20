@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from geometry_msgs.msg import Twist , Pose
 from nav_msgs.msg import Odometry
-from kbki_tesis.msg import Obst
+from kbki_tesis.msg import Obst, Obst_map
 import rospy
 
 class LidarCoordinates(object):
@@ -260,6 +260,28 @@ class PolarControl(object):
 
 		return velocities
 
+class SlamCoordinates(object):
+
+	def __init__(self):
+		self.x = None
+		self.y = None
+		rospy.Subscriber("/map_coordinates", Obst_map, self.readMapCoord)
+
+	def readMapCoord(self, data):
+
+		self.x = data.grid_x
+		self.y = data.grid_y
+
+	def obstaclesMap(self):
+		tamano = len(self.x)
+		obstacles = np.zeros((tamano,3))
+		for n in range(tamano):
+			obstacles[n,0] = self.x[n]
+			obstacles[n,1] = self.y[n]
+			obstacles[n,2] = 1
+
+		return obstacles
+
 # logs
 fposicion_actual = open("/home/jm95/dev/kobuki_ws/src/kbki_tesis/logs/mochi_pos.txt",'w')
 fattractive = open("/home/jm95/dev/kobuki_ws/src/kbki_tesis/logs/mochi_fatt.txt",'w')
@@ -291,6 +313,7 @@ lidar   = LidarCoordinates()
 kbki    = OdomKobuki()
 apf     = PotentialField(dgoal,zeta,rho,eta,Umax)
 control = PolarControl(parametros)
+slam    = SlamCoordinates()
 
 # Publisher
 #pub = rospy.Publisher('/mobile_base/commands/velocity', Twist, queue_size=10)
@@ -315,7 +338,8 @@ while not rospy.is_shutdown():
 	# Current Position of robot movil
 	posicion_actual = kbki.getOdom()
 	# Position of obstacles
-	obstacles = lidar.get_xy()
+	#obstacles = lidar.get_xy()
+	obstacles = slam.obstaclesMap()
 	#print("tamano: ", obstacles.shape, "obstacles: ", obstacles)
 	#print("obstacles: ", obstacles)
 	#r.sleep()

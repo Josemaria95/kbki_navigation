@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from geometry_msgs.msg import Twist , Pose
 from nav_msgs.msg import Odometry, OccupancyGrid, MapMetaData 
-from kbki_tesis.msg import Obst
+from kbki_tesis.msg import Obst, Obst_map
 import copy
 import rospy
 import time
@@ -13,7 +13,8 @@ class SlamInterface(object):
 
 	def __init__ (self):
 
-		#self.pub = rospy.Publisher("/map_index",,queue_size=10, latch=True)
+		self.pub = rospy.Publisher("/map_coordinates",Obst_map,queue_size=10, latch=True)
+		self.obst_msg = Obst_map()
 		rospy.Subscriber("/map",OccupancyGrid, self.readMap)
 		self.grid_x = None #360 * [0.,]
 		self.grid_y = None #360 * [0.,]
@@ -22,6 +23,10 @@ class SlamInterface(object):
 		self.resolution = None
 		self.pose_x = None
 		self.pose_y = None
+		self.tamano = None
+		self.step = None
+		self.x = None
+		self.y = None
 
 	def readMap(self,msg):
 
@@ -40,6 +45,8 @@ class SlamInterface(object):
 		vector_i = []
 		vector_j = []
 
+		self.step  = 10
+
 		# Tomar los indices de los obstaculos y almacenarlos
 		for i in range(current_map.shape[0]):
 			for j in range(current_map.shape[1]):
@@ -54,19 +61,18 @@ class SlamInterface(object):
 
 		#print("x: ", self.grid_x , "y: ", self.grid_y)
 
+		# Convertir los pixeles en coordenadas 
+		self.x = (np.array(self.grid_x) * self.resolution) + self.pose_x
+		self.y = (np.array(self.grid_y) * self.resolution) + self.pose_y
+
+		self.tamano = len(self.x)
 
 		#return (grid_x, grid_y)
 
+	"""
 	def convertCoordinates(self):
 
-		# Convertir los pixeles en coordenadas 
-		x = (np.array(self.grid_x) * self.resolution) + self.pose_x
-		y = (np.array(self.grid_y) * self.resolution) + self.pose_y
-
-		print ("x: ", x)
-		print ("===================================")
-		print ("y: ", y)
-
+		
 		tamano = len(x)
 		obstacles = np.zeros((tamano,2))
 		for n in range(tamano):
@@ -79,6 +85,15 @@ class SlamInterface(object):
 		#plt.show()
 
 		#print ("obst: ", obstacles)
+	"""
+	def publishMap_xy (self):
+
+		self.obst_msg.grid_x = self.x[0:self.tamano:self.step]
+		self.obst_msg.grid_y = self.y[0:self.tamano:self.step]
+		self.pub.publish(self.obst_msg)
+
+
+
 
 rospy.init_node("test_map", anonymous=True)
 slam = SlamInterface()
@@ -90,9 +105,10 @@ rate = rospy.Rate(freq)
 while not rospy.is_shutdown():
 
 	time.sleep(1)
-
-	obstaculos = slam.convertCoordinates()
+	#obstaculos = slam.convertCoordinates()
 	#print("obst: ", obstaculos)
+
+	slam.publishMap_xy()
 
 	rate.sleep()
 
