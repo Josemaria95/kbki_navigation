@@ -51,7 +51,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   Obst.msg
-#   Message2.msg
+  Obst_map.msg
 )
 
 ## Generate services in the 'srv' folder
