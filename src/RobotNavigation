@@ -6,6 +6,7 @@ from geometry_msgs.msg import Twist , Pose
 from nav_msgs.msg import Odometry
 from kbki_tesis.msg import Obst, Obst_map
 import rospy
+import rospkg
 
 class LidarCoordinates(object):
 
@@ -284,10 +285,12 @@ class SlamCoordinates(object):
 		return obstacles
 
 # logs
-fposicion_actual = open("/home/jm95/dev/kobuki_ws/src/kbki_tesis/logs/mochi_pos.txt",'w')
-fattractive = open("/home/jm95/dev/kobuki_ws/src/kbki_tesis/logs/mochi_fatt.txt",'w')
-frepulsive = open("/home/jm95/dev/kobuki_ws/src/kbki_tesis/logs/mochi_frep.txt",'w')
-fobstaculos = open("/home/jm95/dev/kobuki_ws/src/kbki_tesis/logs/mochi_obst.txt","w")
+rospack = rospkg.RosPack()
+folder = rospack.get_path('kbki_tesis')
+fposicion_actual = open(folder + "/logs/mochi_pos.txt",'w')
+fattractive = open(folder + "/logs/mochi_fatt.txt",'w')
+frepulsive = open(folder + "/logs/mochi_frep.txt",'w')
+fobstaculos = open(folder + "/logs/mochi_obst.txt","w")
 
 # Node Create
 rospy.init_node ("RobotNavigation", anonymous=True)
