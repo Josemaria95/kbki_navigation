@@ -261,10 +261,10 @@ class PolarControl(object):
 		return velocities
 
 # logs
-fposicion_actual = open("/home/jm95/dev/kobuki_ws/src/kbki_tesis/logs/current_5.txt",'w')
-fattractive = open("/home/jm95/dev/kobuki_ws/src/kbki_tesis/logs/fattr_5.txt",'w')
-frepulsive = open("/home/jm95/dev/kobuki_ws/src/kbki_tesis/logs/frep_5.txt",'w')
-fobstaculos = open("/home/jm95/dev/kobuki_ws/src/kbki_tesis/logs/obst_5.txt","w")
+fposicion_actual = open("/home/jm95/dev/kobuki_ws/src/kbki_tesis/logs/mochi_pos.txt",'w')
+fattractive = open("/home/jm95/dev/kobuki_ws/src/kbki_tesis/logs/mochi_fatt.txt",'w')
+frepulsive = open("/home/jm95/dev/kobuki_ws/src/kbki_tesis/logs/mochi_frep.txt",'w')
+fobstaculos = open("/home/jm95/dev/kobuki_ws/src/kbki_tesis/logs/mochi_obst.txt","w")
 
 # Node Create
 rospy.init_node ("RobotNavigation", anonymous=True)
@@ -310,7 +310,7 @@ r.sleep()
 while not rospy.is_shutdown():
 
 	# Goal position
-	apf.set_qgoal(np.array([4.0,4.0]))
+	apf.set_qgoal(np.array([4.0,0.0]))
 	thgoal = 90
 	# Current Position of robot movil
 	posicion_actual = kbki.getOdom()

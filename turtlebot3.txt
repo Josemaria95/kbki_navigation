@@ -1,0 +1,19 @@
+ - Instalar el siguiente paquete:
+	$ sudo apt-get install ros-kinetic-turtlebot3
+ 
+ - Simulación:
+	$ export TURTLEBOT3_MODEL=${TB3_MODEL=waffle_pi}
+	$ roslaunch turtlebot3_gazebo turtlebot3_empty_world.launch
+
+ - SLAM:
+	$ export TURTLEBOT3_MODEL=${TB3_MODEL=waffle_pi}
+	$ roslaunch turtlebot3_slam turtlebot3_slam.launch
+	$ rosrun rviz rviz -d `rospack find turtlebot3_slam`/rviz/turtlebot3_slam.rviz
+
+ - Potential Field:
+	$ ./kbki_tesis/src/RobotNavigation
+ - Datos del Lidar:
+	$ ./kbki_tesis/src/lidar_send_xy
+ - Datos del mapa del Slam:
+	$ ./kbki_tesis/src/test_map
+

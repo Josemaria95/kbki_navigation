@@ -68,6 +68,8 @@ class SlamInterface(object):
 			obstacles[n,0] = x[n]
 			obstacles[n,1] = y[n]
 
+		#print ("obst: ", obstacles)
+		
 		plt.plot(obstacles[:,0],obstacles[:,1],'.')
 		plt.show()
 
@@ -85,7 +87,7 @@ while not rospy.is_shutdown():
 	time.sleep(1)
 
 	obstaculos = Slam.convertCoordinates()
-	print("obst: ", obstaculos)
+	#print("obst: ", obstaculos)
 
 	rate.sleep()
 
