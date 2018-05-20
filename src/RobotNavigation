@@ -123,6 +123,7 @@ class PotentialField(object):
 			U_attractive = self.dgoal * self.zeta * distancia - 0.5 * self.zeta * self.dgoal ** 2.0
 			F_attractive = -self.dgoal * self.zeta * (self.qc - self.qgoal) / distancia
 
+		print("F_attr: ", F_attractive, "distancia: ", distancia)
 		return U_attractive, F_attractive
 
 	#def repulsive_potential(self, qcurrent, obstacles):
@@ -274,12 +275,12 @@ class SlamCoordinates(object):
 
 	def obstaclesMap(self):
 		tamano = len(self.x)
-		obstacles = np.zeros((tamano,3))
+		obstacles = np.zeros((tamano,2))
 		for n in range(tamano):
 			obstacles[n,0] = self.x[n]
 			obstacles[n,1] = self.y[n]
-			obstacles[n,2] = 1
-
+			#obstacles[n,2] = 1
+		#print("obstacles: ", obstacles)
 		return obstacles
 
 # logs
@@ -297,7 +298,7 @@ zeta  = 0.5 	# Ganancia del gradiente atractivo
 dgoal = 1  	# Distancia a la que el robot empieza a disminuir las velocidad
 
 # Repulsive Potential
-rho  = 0.6 # Q*
+rho  = 1.0 # Q*
 eta  = 0.5 # Ganancia del gradiente repulsivo
 Umax = 1.0
 
@@ -351,16 +352,17 @@ while not rospy.is_shutdown():
 	#print ("current: ", apf.get_qcurrent())
 	# Matrix Rotation
 	#matrix_rotation = np.array([np.cos(posicion_actual(2)), -np.sin(posicion_actual(2)), 0],[np.sin(posicion_actual(2)), np.cos(posicion_actual(2)), 0],[0,0,1])
-	matrixR = kbki.matrixRotation()
-	obstacles = obstacles.transpose()
+	#matrixR = kbki.matrixRotation()
+	#obstacles = obstacles.transpose()
 	#print("obstacles: ", obstacles)
-	lidar_obstacles = np.dot(matrixR, obstacles)
-	lidar_obstacles += np.array([posicion_actual[0],posicion_actual[1],1]).reshape(3,1)
+	#lidar_obstacles = np.dot(matrixR, obstacles)
+	#lidar_obstacles += np.array([posicion_actual[0],posicion_actual[1],1]).reshape(3,1)
 
 	# Logs obstacles
 	#fobstaculos.write(str(lidar_obstacles[0]) + " " + str(lidar_obstacles[1]) + "\n")
 	#print("lidar_obst: \n", lidar_obstacles)
-	apf.set_obstacles(lidar_obstacles)
+	#apf.set_obstacles(lidar_obstacles)
+	apf.set_obstacles(obstacles)
 	#print("lidar_obstacles: ", apf.set_obstacles)
 	# Navigation Force
 	fuerza_navegacion = apf.getFtotal()
