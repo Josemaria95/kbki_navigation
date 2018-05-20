@@ -62,38 +62,19 @@ class SlamInterface(object):
 		#print("x: ", self.grid_x , "y: ", self.grid_y)
 
 		# Convertir los pixeles en coordenadas 
-		self.x = (np.array(self.grid_x) * self.resolution) + self.pose_x
-		self.y = (np.array(self.grid_y) * self.resolution) + self.pose_y
+		self.x = (np.array(self.grid_y) * self.resolution) + self.pose_x
+		self.y = (np.array(self.grid_x) * self.resolution) + self.pose_y
 
 		self.tamano = len(self.x)
 
 		#return (grid_x, grid_y)
 
-	"""
-	def convertCoordinates(self):
-
-		
-		tamano = len(x)
-		obstacles = np.zeros((tamano,2))
-		for n in range(tamano):
-			obstacles[n,0] = x[n]
-			obstacles[n,1] = y[n]
-
-		#print ("obst: ", obstacles)
-		
-		#plt.plot(obstacles[:,0],obstacles[:,1],'.')
-		#plt.show()
-
-		#print ("obst: ", obstacles)
-	"""
 	def publishMap_xy (self):
 
 		self.obst_msg.grid_x = self.x[0:self.tamano:self.step]
 		self.obst_msg.grid_y = self.y[0:self.tamano:self.step]
+		print("map: ", self.obst_msg)
 		self.pub.publish(self.obst_msg)
-
-
-
 
 rospy.init_node("test_map", anonymous=True)
 slam = SlamInterface()
