@@ -124,7 +124,7 @@ class PotentialField(object):
 			U_attractive = self.dgoal * self.zeta * distancia - 0.5 * self.zeta * self.dgoal ** 2.0
 			F_attractive = -self.dgoal * self.zeta * (self.qc - self.qgoal) / distancia
 
-		print("F_attr: ", F_attractive, "distancia: ", distancia)
+		#print("F_attr: ", F_attractive, "distancia: ", distancia)
 		return U_attractive, F_attractive
 
 	#def repulsive_potential(self, qcurrent, obstacles):
@@ -153,7 +153,7 @@ class PotentialField(object):
 			U_repulsive = 0.0
 			F_repulsive = np.zeros(2,)
 
-		print("F_rep: ", F_repulsive, ", dist: ",distancia)
+		#print("F_rep: ", F_repulsive, ", dist: ",distancia)
 		return U_repulsive, F_repulsive
 
 	#def repulsive_walls(self, obstacles):
@@ -165,11 +165,22 @@ class PotentialField(object):
 		F_total = np.zeros(2,)
 		#print ("data: ", self,obstacles, "tamano: ", np.size(self.obstacles))
 		#for i in range(len(self.obstacles)):
-		for i in range(self.obstacles.shape[1]):
+		
+		# Con los datos del Lidar
+		#for i in range(self.obstacles.shape[1]):
+		for i in range(self.obstacles.shape[0]):
 			#print(self.qc)
 			#print(self.obstacles.shape)
-			U_repulsive, F_repulsive = self.repulsive_potential_(self.obstacles[0:2,i])
-			fobstaculos.write(str(self.obstacles[0,i]) + " " + str(self.obstacles[1,i]) + "\n")
+			print(self.obstacles[i,:])
+			# Con los datos del Lidar
+			# U_repulsive, F_repulsive = self.repulsive_potential_(self.obstacles[0:2,i])
+			# fobstaculos.write(str(self.obstacles[0,i]) + " " + str(self.obstacles[1,i]) + "\n")
+
+			U_repulsive, F_repulsive = self.repulsive_potential_(self.obstacles[i,:])
+			fobstaculos.write(str(self.obstacles[i,0]) + " " + str(self.obstacles[i,1]) + "\n")
+			#plt.plot(self.obstacles[:,0], self.obstacles[:,1], '.')
+			#plt.axis([-4,4,-4,4])
+			plt.show()
 			U_total += U_repulsive
 			F_total += F_repulsive
 
@@ -187,7 +198,7 @@ class PotentialField(object):
 
 		# Navigation Force
 		Ftotal = F_attractive + F_repulsive
-		print ("F_total: ", Ftotal)
+		#print ("F_total: ", Ftotal)
 		#Ftotal = F_attractive
 
 		fattractive.write(str(F_attractive[0]) + " " + str(F_attractive[1]) + "\n")
@@ -201,7 +212,7 @@ class PotentialField(object):
 		#print("magnitud: ",magnitud_Ftotal, "direction: ",direction_Ftotal)
 		vector = [magnitud_Ftotal, direction_Ftotal]
 
-		print("magnitud: ",magnitud_Ftotal, "direction: ",direction_Ftotal)
+		#print("magnitud: ",magnitud_Ftotal, "direction: ",direction_Ftotal)
 		#return direction_Ftotal, magnitud_Ftotal
 		return vector
 
@@ -281,16 +292,17 @@ class SlamCoordinates(object):
 			obstacles[n,0] = self.x[n]
 			obstacles[n,1] = self.y[n]
 			#obstacles[n,2] = 1
-		#print("obstacles: ", obstacles)
+
+		#print("obstacles: ", np.round(obstacles,3))
 		return obstacles
 
 # logs
 rospack = rospkg.RosPack()
 folder = rospack.get_path('kbki_tesis')
-fposicion_actual = open(folder + "/logs/mochi_pos.txt",'w')
-fattractive = open(folder + "/logs/mochi_fatt.txt",'w')
-frepulsive = open(folder + "/logs/mochi_frep.txt",'w')
-fobstaculos = open(folder + "/logs/mochi_obst.txt","w")
+fposicion_actual = open(folder + "/logs/test_pos.txt",'w')
+fattractive = open(folder + "/logs/test_fatt.txt",'w')
+frepulsive = open(folder + "/logs/test_frep.txt",'w')
+fobstaculos = open(folder + "/logs/test_obst.txt","w")
 
 # Node Create
 rospy.init_node ("RobotNavigation", anonymous=True)
@@ -302,7 +314,7 @@ dgoal = 1  	# Distancia a la que el robot empieza a disminuir las velocidad
 
 # Repulsive Potential
 rho  = 1.0 # Q*
-eta  = 0.5 # Ganancia del gradiente repulsivo
+eta  = 1.0 # Ganancia del gradiente repulsivo
 Umax = 1.0
 
 # Polar Control Parameters
@@ -337,7 +349,7 @@ r.sleep()
 while not rospy.is_shutdown():
 
 	# Goal position
-	apf.set_qgoal(np.array([4.0,3.0]))
+	apf.set_qgoal(np.array([4.0,0.0]))
 	thgoal = 90
 	# Current Position of robot movil
 	posicion_actual = kbki.getOdom()
@@ -398,7 +410,7 @@ while not rospy.is_shutdown():
 		kp = 0.05
 		velo_angular = kp * (posicion_actual[2] - np.deg2rad(thgoal))
 		velo_lineal  = 0.0
-		print("================================================")
+		#print("================================================")
 
 	# Type message
 	gts = Twist()
@@ -413,7 +425,7 @@ while not rospy.is_shutdown():
 	gts.angular.x = 0.0
 	gts.angular.y = 0.0
 	gts.angular.z = velocidades[1]
-	#gts.angular.z = 0.5
+	#gts.angular.z = 0.0
 
 	# Error
 	error = posicion_actual - np.hstack((apf.get_qgoal() , thgoal))
