@@ -52,6 +52,8 @@ add_message_files(
   FILES
   Obst.msg
   Obst_map.msg
+  servoAng.msg
+  threemap.msg
 )
 
 ## Generate services in the 'srv' folder
