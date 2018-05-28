@@ -23,13 +23,14 @@ class Map3D(object):
 		self.y = np.array(data.y)
 		#self.y = [data.y]
 		print("y: ", self.y)
-		self.servo_angle = data.angle
+		self.servo_angle = np.deg2rad(data.angle)
 		print("angle: ", self.servo_angle)
 
 	def matrixRotation(self):
 
 		if not self.x is None:
 			if not self.y is None:
+
 
 				matrix_map = np.array([[self.x * np.cos(self.servo_angle)], [self.y], [-self.x * np.sin(self.servo_angle)]])
 				#print ("3D: ", matrix_map)
