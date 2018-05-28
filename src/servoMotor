@@ -1,0 +1,55 @@
+#!/usr/bin/env python
+import RPi.GPIO as GPIO
+import time
+import numpy as np
+from kbki_tesis.msg import servoAng
+import rospy
+
+def runMotor():
+	pub = rospy.Publisher('/motor_ang', servoAng, queue_size=10)
+	rospy.init_node('servoMotor', anonymous=True)
+	GPIO.setmode(GPIO.BOARD)
+	GPIO.setup(03, GPIO.OUT)
+	pwm = GPIO.PWM(03, 50)
+	pwm.start(0)
+
+	start = 4.0
+	stop = 5.5
+
+	# zero angle (center) 
+	zero = 48.6
+
+	pwm.ChangeDutyCycle(start)
+	time.sleep(1)
+	rate = rospy.Rate(10)
+
+	while not rospy.is_shutdown():
+
+		for duty in np.linspace(start,stop, 100):
+
+			pwm.ChangeDutyCycle(duty)
+			angle = 18*(duty - 2)
+			angle_change = angle - zero
+			print(angle_change)
+			time.sleep(0.01)
+			pub.publish(angle_change)
+			rate.sleep()
+
+		time.sleep(0.01)
+
+		for duty in np.linspace(stop, start, 100):
+			pwm.ChangeDutyCycle(duty)
+			angle = 18 * (duty - 2)
+			angle_change = angle - zero
+			print(angle_change)
+			time.sleep(0.01)
+			pub.publish(angle_change)
+			rate.sleep()
+
+		time.sleep(0.01)
+
+if __name__ == '__main__':
+    try:
+        runMotor()
+    except rospy.ROSInterruptException:
+        pass

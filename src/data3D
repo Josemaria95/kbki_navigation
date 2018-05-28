@@ -1,0 +1,52 @@
+#!/usr/bin/env python
+import numpy as np
+from sensor_msgs.msg import LaserScan
+from kbki_tesis.msg import servoAng, Obst, threemap
+import rospy
+import time
+
+class init_Map3D (object):
+
+	def __init__ (self):
+
+		self.pub = rospy.Publisher("/scan_3d", threemap, queue_size=10, latch=True)
+		self.threemap_msg = threemap()
+		rospy.Subscriber("/coordinates",Obst, self.readLaser)
+		rospy.Subscriber("/motor_ang", servoAng, self.readMotor)
+		self.angle_motor = None
+		self.x = None
+		self.y = None
+
+	def readMotor(self, data):
+
+		self.angle_motor = data.angle
+
+	def readLaser(self, data):
+
+		self.x = data.x_obst
+		self.y = data.y_obst
+
+	def publishMap3D(self):
+
+		self.threemap_msg.x = self.x
+		self.threemap_msg.y = self.y
+		self.threemap_msg.angle = self.angle_motor
+
+		self.pub.publish (self.threemap_msg)
+
+rospy.init_node("init3D", anonymous=True)
+var = init_Map3D()
+# Rate Frequency
+freq = 5     # Frecuencia (Hz)
+T    = 1.0/freq # Periodo
+rate = rospy.Rate(freq)
+
+while not rospy.is_shutdown():
+
+	time.sleep(1)
+	var.publishMap3D()
+
+	rate.sleep()
+
+
+rospy.spin()

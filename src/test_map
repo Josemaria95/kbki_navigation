@@ -65,15 +65,23 @@ class SlamInterface(object):
 		self.x = (np.array(self.grid_y) * self.resolution) + self.pose_x
 		self.y = (np.array(self.grid_x) * self.resolution) + self.pose_y
 
+		#plt.plot(self.x, self.y,'.')
+		#plt.axis([-4,4,-4,4])
+		#plt.show()
+
 		self.tamano = len(self.x)
 
 		#return (grid_x, grid_y)
 
 	def publishMap_xy (self):
 
-		self.obst_msg.grid_x = self.x[0:self.tamano:self.step]
-		self.obst_msg.grid_y = self.y[0:self.tamano:self.step]
-		print("map: ", self.obst_msg)
+		#self.obst_msg.grid_x = self.x[0:self.tamano:self.step]
+		self.obst_msg.grid_x = self.x[0:self.tamano]
+		#self.obst_msg.grid_y = self.y[0:self.tamano:self.step]
+		self.obst_msg.grid_y = self.y[0:self.tamano]
+		print("map x: ", np.round(self.obst_msg.grid_x,3))
+		print("map y: ", np.round(self.obst_msg.grid_y,3))
+		print("\n")
 		self.pub.publish(self.obst_msg)
 
 rospy.init_node("test_map", anonymous=True)

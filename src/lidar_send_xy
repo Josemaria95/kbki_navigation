@@ -48,8 +48,10 @@ class LidarInterface(object):
 
 
 	def publish_xy(self):
-		self.obst_msg.x_obst = self.x_obst[0:self.tamano:self.step]
-		self.obst_msg.y_obst = self.y_obst[0:self.tamano:self.step]
+		#self.obst_msg.x_obst = self.x_obst[0:self.tamano:self.step]
+		self.obst_msg.x_obst = self.x_obst[0:self.tamano]
+		#self.obst_msg.y_obst = self.y_obst[0:self.tamano:self.step]
+		self.obst_msg.y_obst = self.y_obst[0:self.tamano]
 		print("lidar: ", self.obst_msg)
 		self.pub.publish(self.obst_msg)
 

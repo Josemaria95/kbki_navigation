@@ -1,0 +1,64 @@
+#!/usr/bin/env python
+import numpy as np
+from sensor_msgs.msg import LaserScan
+from kbki_tesis.msg import servoAng, Obst, threemap
+import rospy
+import rospkg
+
+
+class Map3D(object):
+
+	def __init__ (self):
+
+		rospy.Subscriber('/scan_3d', threemap, self.readMAP)
+		self.x = None
+		self.y = None
+		self.servo_angle = 0.0
+
+	def readMAP(self, data):
+
+		self.x = np.array(data.x)
+		#self.x = [data.x]
+		print("x: ", self.x)
+		self.y = np.array(data.y)
+		#self.y = [data.y]
+		print("y: ", self.y)
+		self.servo_angle = data.angle
+		print("angle: ", self.servo_angle)
+
+	def matrixRotation(self):
+
+		if not self.x is None:
+			if not self.y is None:
+
+				matrix_map = np.array([[self.x * np.cos(self.servo_angle)], [self.y], [-self.x * np.sin(self.servo_angle)]])
+				#print ("3D: ", matrix_map)
+				#print("tamano: ", np.shape(matrix_map))
+
+				Mrotation.write(str(matrix_map[0]) + " " + str(matrix_map[1]) + " " + str(matrix_map[2]) +  "\n")
+
+				return matrix_map
+		return None
+# Logs
+rospack = rospkg.RosPack()
+folder = rospack.get_path('kbki_tesis')
+Mrotation = open(folder + "/logs/map3D_1.txt",'w')
+
+rospy.init_node("mapeoen3D",anonymous=True)
+
+map3D = Map3D()
+# Rate Frequency
+freq = 5     # Frecuencia (Hz)
+T    = 1.0/freq # Periodo
+rate = rospy.Rate(freq)
+
+while not rospy.is_shutdown():
+
+	mapita = map3D.matrixRotation()
+	rate.sleep()
+
+
+Mrotation.close()
+
+rospy.spin()
+
