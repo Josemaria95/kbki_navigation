@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 import numpy as np
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
 from sensor_msgs.msg import LaserScan
 from kbki_tesis.msg import servoAng, Obst, threemap
 import rospy
@@ -14,36 +16,59 @@ class Map3D(object):
 		self.x = None
 		self.y = None
 		self.servo_angle = 0.0
+		#self.points = None
 
 	def readMAP(self, data):
 
 		self.x = np.array(data.x)
-		#self.x = [data.x]
-		print("x: ", self.x)
+		#self.x = data.x
+		#print("x: ", self.x)
 		self.y = np.array(data.y)
-		#self.y = [data.y]
-		print("y: ", self.y)
+		#self.y = data.y
+		#print("y: ", self.y)
 		self.servo_angle = np.deg2rad(data.angle)
-		print("angle: ", self.servo_angle)
+		#print("angle: ", self.servo_angle)
 
-	def matrixRotation(self):
+	def getPoints(self):
 
 		if not self.x is None:
 			if not self.y is None:
 
+				#tamano = len(self.x)
+				#self.points = np.zeros((tamano,3))
+				#matrixRotation = np.zeros((tamano,3))
 
-				matrix_map = np.array([[self.x * np.cos(self.servo_angle)], [self.y], [-self.x * np.sin(self.servo_angle)]])
-				#print ("3D: ", matrix_map)
-				#print("tamano: ", np.shape(matrix_map))
+				#for i in range(tamano):
 
-				Mrotation.write(str(matrix_map[0]) + " " + str(matrix_map[1]) + " " + str(matrix_map[2]) +  "\n")
+				#	matrixRotation[i,0] = self.x[i] * np.cos(self.servo_angle)
 
-				return matrix_map
+				#	matrixRotation[i,1] = self.y[i]
+				#	matrixRotation[i,2] = -self.x[i] * np.sin(self.servo_angle)
+
+				#Mrotation.write(str(matrixRotation[0]) + " " + str(matrixRotation[1]) + " " + str(matrixRotation[2]) +  "\n")
+
+				#print("rotation: ", matrixRotation)
+				#print("tamano: ", np.shape(matrixRotation))
+				x_point = self.x * np.cos(self.servo_angle)
+				x_point = x_point.reshape(1,len(x_point))
+
+				y_point = self.y
+				y_point = y_point.reshape(1,len(y_point))
+
+				z_point = -self.x * np.sin(self.servo_angle)
+				z_point = z_point.reshape(1,len(z_point))
+
+				matrix = np.concatenate((x_point,y_point))
+				matrixRotation = np.concatenate((matrix,z_point))
+
+				return matrixRotation
+
 		return None
+
 # Logs
 rospack = rospkg.RosPack()
 folder = rospack.get_path('kbki_tesis')
-Mrotation = open(folder + "/logs/map3D_1.txt",'w')
+#Mrotation = open(folder + "/logs/map3D_1.txt",'w')
 
 rospy.init_node("mapeoen3D",anonymous=True)
 
@@ -53,13 +78,30 @@ freq = 5     # Frecuencia (Hz)
 T    = 1.0/freq # Periodo
 rate = rospy.Rate(freq)
 
+plt.show()
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+x_data = np.empty((0))
+y_data = np.empty((0))
+z_data = np.empty((0))
+
+
 while not rospy.is_shutdown():
 
-	mapita = map3D.matrixRotation()
+	mapita = map3D.getPoints()
+	#print("X: ", mapita[0])
+	x_data = np.append(x_data, mapita[0])
+	y_data = np.append(y_data, mapita[1])
+	z_data = np.append(z_data, mapita[2])
+
+	plt.draw()
+	plt.pause(0.01)
+	ax.scatter(x_data,y_data,z_data,marker=".")
+
 	rate.sleep()
 
 
-Mrotation.close()
+#Mrotation.close()
 
 rospy.spin()
 
