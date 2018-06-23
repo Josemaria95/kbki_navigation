@@ -1,0 +1,52 @@
+#!/usr/bin/env python
+import numpy as np
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
+from pylab import genfromtxt  
+
+# Open data
+data = genfromtxt("sensor.txt")
+# rangos
+rangos = data.shape[1]
+# Cantidad de puntos
+maxpoint = 200
+#maxpoint = data.shape[0]
+point = data[0:maxpoint,1:rangos]
+# Matrices X, Y
+x = np.zeros((point.shape[0], point.shape[1]))
+y = np.zeros((point.shape[0], point.shape[1]))
+# Contador
+cnt = 0
+
+for i in range(point.shape[1]):
+	x[:,i] = point[:,i] * np.cos(np.deg2rad(i))
+	y[:,i] = point[:,i] * np.sin(np.deg2rad(i))
+
+#plt.plot(x,y,'.')
+#plt.show()
+
+# Matrices en los tres ejes
+totalang = maxpoint
+x3 = np.zeros((totalang, point.shape[1]))
+y3 = np.zeros((totalang, point.shape[1]))
+z3 = np.zeros((totalang, point.shape[1]))
+
+# Distancia entre el eje de giro con el centro del lidar
+d = 0.07 #metros
+
+# Ploteo
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+
+for m in range(0,totalang):
+	ang = np.deg2rad(data[m,0])
+	x3[m,:] = x[m,:]*np.cos(ang) + d*np.sin(ang) 
+	y3[m,:] = y[m,:]
+	z3[m,:] = -np.sin(ang)*x[m,:] + d*np.cos(ang) 
+
+ax.scatter(x3, y3, z3,s=1,c = 'r', marker = ".",alpha = 0.5)
+ax.set_xlabel('X Label')
+ax.set_ylabel('Y Label')
+ax.set_zlabel('Z Label')
+ax.set_zlim3d(-0.8,0.8)
+plt.show()
