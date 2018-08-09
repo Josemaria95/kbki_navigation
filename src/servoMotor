@@ -13,11 +13,13 @@ def runMotor():
 	pwm = GPIO.PWM(03, 50)
 	pwm.start(0)
 
-	start = 4.0
-	stop = 5.5
+	start = 3.77777
+	#stop = 5.5
+	stop = 8.0
 
 	# zero angle (center) 
-	zero = 48.6
+	#zero = 48.6
+	zero = 70.0
 
 	pwm.ChangeDutyCycle(start)
 	time.sleep(1)

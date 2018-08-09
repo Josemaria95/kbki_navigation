@@ -1,0 +1,105 @@
+#!/usr/bin/env python
+import numpy as np
+from sensor_msgs.msg import LaserScan
+from kbki_tesis.msg import servoAng, Obst, threemap
+from nav_msgs.msg import Odometry
+import rospy
+import time
+
+class Scan(object):
+	def __init__(self):
+
+		self.angle_motor = None
+		self.rangos 	 = None
+		rospy.Subscriber("/scan", LaserScan, self.readLaser)
+		rospy.Subscriber("/motor_ang", servoAng, self.readMotor)
+
+
+	def readMotor(self,data):
+
+		self.angle_motor = data.angle
+
+	def getMotor(self):
+		return self.angle_motor
+
+	def readLaser(self, data):
+
+		self.rangos = data.ranges
+
+	def getLaser(self):
+		return self.rangos
+"""
+class Odomkbki(object):
+	def __init__(self):
+		self.position_x = 0.0
+		self.position_y = 0.0
+		self.orientation_w = 1.0
+		self.orientation_z = 0.0
+		self.th_actual = 0.0
+		rospy.Subscriber("/odom", Odometry,self.readOdom)
+
+	def readOdom(self, data):
+		# Position 
+		self.position_x = data.pose.pose.position.x
+		self.position_y = data.pose.pose.position.y
+		# Orientation
+		self.orientation_z = data.pose.pose.orientation.z
+		self.orientation_w = data.pose.pose.orientation.w
+		self.th_actual = 2 * np.arccos(self.orientation_w) * np.sign(self.orientation_z)
+
+	def getOdom(self):
+		self.x_actual  = self.position_x
+		self.y_actual  = self.position_y
+
+		current_pose = np.array([self.x_actual, self.y_actual, self.th_actual])
+		
+		return current_pose
+"""
+
+# Logs
+sensor = open ("esan3D_1.txt","w")
+#odometria = open("esan3D.txt","w")
+
+# Node create
+rospy.init_node("Datos_3D", anonymous=True)
+
+# Class init
+lidar = Scan()
+#kbki = Odomkbki()
+
+# Rate Frequency
+freq = 5     # Frecuencia (Hz)
+T    = 1.0/freq # Periodo
+rate = rospy.Rate(freq)
+r    = rospy.Rate(1)
+
+# Tiempo inicial
+tinit = rospy.get_time()
+
+r.sleep()
+
+while not rospy.is_shutdown():
+
+	#posicion_actual = kbki.getOdom()
+	laser = lidar.getLaser()
+	motor = lidar.getMotor()
+
+	t = rospy.get_time() - tinit
+	sensor.write(str(motor) + " ")
+	for i,r in enumerate(laser):
+		if r != float('inf'):
+			sensor.write(str(laser[i]) + " ")
+		else:
+			sensor.write("0.0 ")
+	sensor.write("\n")
+
+	#odometria.write(str(t) + " " + str(posicion_actual[0]) + " " + 
+	#	str(posicion_actual[1]) + " " + str(posicion_actual[2]) + "\n")
+
+
+	rate.sleep()
+
+sensor.close()
+#odometria.close()
+
+rospy.spin()

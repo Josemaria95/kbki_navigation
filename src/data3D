@@ -11,29 +11,48 @@ class init_Map3D (object):
 
 		self.pub = rospy.Publisher("/scan_3d", threemap, queue_size=10, latch=True)
 		self.threemap_msg = threemap()
-		rospy.Subscriber("/coordinates",Obst, self.readLaser)
+		#rospy.Subscriber("/coordinates",Obst, self.readLaser)
+		rospy.Subscriber("/scan", LaserScan, self.readLaser)
 		rospy.Subscriber("/motor_ang", servoAng, self.readMotor)
 		self.angle_motor = None
 		self.x = None
 		self.y = None
+		self.rangos = None
 
 	def readMotor(self, data):
 
 		self.angle_motor = data.angle
+		#print(self.angle_motor)
+		sensor.write(str(self.angle_motor) + " ")
+		
+		for i,r in enumerate(self.rangos):
+			if r != float('inf'):
+				sensor.write(str(self.rangos[i]) + " ")
+			else:
+				sensor.write("0.0 ")
+		sensor.write("\n")
+
 
 	def readLaser(self, data):
 
-		self.x = data.x_obst
-		self.y = data.y_obst
+		#self.x = data.x_obst
+		#self.y = data.y_obst
+		self.rangos = data.ranges
+		#counter = 0
+		
 
-	def publishMap3D(self):
+	#def publishMap3D(self):
 
-		self.threemap_msg.x = self.x
-		self.threemap_msg.y = self.y
-		self.threemap_msg.angle = self.angle_motor
+		#self.threemap_msg.x = self.x
+		#self.threemap_msg.y = self.y
+		#self.threemap_msg.angle = self.angle_motor
 
-		self.pub.publish (self.threemap_msg)
+		#self.pub.publish (self.threemap_msg)
 
+#Logs
+sensor = open("scan3D.txt","w")
+
+#Node init
 rospy.init_node("init3D", anonymous=True)
 var = init_Map3D()
 # Rate Frequency
@@ -41,12 +60,12 @@ freq = 5     # Frecuencia (Hz)
 T    = 1.0/freq # Periodo
 rate = rospy.Rate(freq)
 
-while not rospy.is_shutdown():
+#while not rospy.is_shutdown():
 
-	time.sleep(1)
-	var.publishMap3D()
+#	time.sleep(1)
+#	var.publishMap3D()
 
-	rate.sleep()
+#	rate.sleep()
 
 
 rospy.spin()
